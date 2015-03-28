@@ -32,6 +32,8 @@ USERNAME = 'user'
 PASSWORD = 'default'
 DEBUG = True 
 
+tLinks = 3696
+
 google = OAuth2Service(
     name='google',
     client_id = GOOGLE_APP_ID,
@@ -50,7 +52,7 @@ class User(db.Model):
     plink = db.Column(db.String(200))
     seen = db.relationship('Links',backref = 'user',lazy = 'dynamic')
     
-    def __init__(self,name,google_id,seen=[],links=5,done=5,plink=None):
+    def __init__(self,name,google_id,seen=[],links=300,done=300,plink=None):
         self.name = name
         self.google_id = google_id
         self.seen = seen 
@@ -94,7 +96,7 @@ class User(db.Model):
                 db.session.commit()
         print '3'
         return user
-     
+    
 class Links(db.Model):
     id = db.Column(db.Integer,primary_key = True)
     person_id = db.Column(db.Integer,db.ForeignKey('user.id'))
@@ -151,26 +153,27 @@ def callback():
 @login_required 
 def strip():
     user = User.query.filter_by(id=current_user.id).first()
-    if user.done < 11:
+    if user.done < tLinks:
         user.done += 1
    
     s = Source.query.filter_by(id=user.done).first()
 
     if user.links == 0:
-       return 'Links are Done'
+        logout_user()
+        return render_template('end.html')
 
     strip = randint(0,user.links - 1)
     
     srce = user.seen[strip].src 
     user.seen.remove(user.seen[strip])
     
-    if user.done < 11:
+    if user.done < tLinks:
         src = s.source
         li = Links(src=src,user=user)
         db.session.add(li)
         user.seen.append(li)
      
-    if user.done == 11:
+    if user.done == tLinks:
         user.links -= 1
     
     user.plink = srce
@@ -192,7 +195,7 @@ def next():
     s = Source.query.filter_by(source=src).first()
     n = None
     
-    if (s.id == 11):
+    if (s.id == tLinks):
         n = 1
 
     else: 
@@ -220,7 +223,7 @@ def prev():
     n = None
     
     if (s.id == 1):
-        n = 11
+        n = tLinks 
 
     else: 
         n = s.id - 1
