@@ -1,0 +1,109 @@
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+from flask_script import Manager
+from flask import url_for,session,flash,render_template,redirect,request   
+from flask_oauth import OAuthRemoteApp
+from flask_login import LoginManager,UserMixin,current_user,current_app
+from rauth import OAuth2Service 
+import json 
+from flask import jsonify 
+from requests_oauthlib import OAuth2Session
+from flask_migrate import Migrate,MigrateCommand
+
+GOOGLE_APP_ID = '304034490852-tm91ml588d7qn9ruvjd1freot0c7plha.apps.googleusercontent.com'
+GOOGLE_APP_SECRET = '8foFjOWojo85Q3PxhwXHy1Yh'
+GOOGLE_AUTH_URI = 'https://accounts.google.com/o/oauth2/auth'
+GOOGLE_REVOKE_URI = 'https://accounts.google.com/o/oauth2/revoke'
+GOOGLE_TOKEN_URI = 'https://accounts.google.com/o/oauth2/token'
+GOOGLE_BASE_URL = 'https://www.googleapis.com/plus/v1/'
+
+app = Flask(__name__)
+app.debug = True
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/test.db'
+app.secret_key = 'MyNameisBond'
+login_manager = LoginManager()
+db = SQLAlchemy(app)
+login_manager.init_app(app)
+
+SECRET_KEY = 'sid'
+USERNAME = 'user'
+PASSWORD = 'default'
+DEBUG = True 
+
+google = OAuth2Service(
+    name='google',
+    client_id = GOOGLE_APP_ID,
+    client_secret = GOOGLE_APP_SECRET,
+    access_token_url=GOOGLE_TOKEN_URI,
+    authorize_url=GOOGLE_AUTH_URI,
+    base_url = GOOGLE_BASE_URL)
+
+
+class User(db.Model):
+    id = db.Column(db.Integer,primary_key = True,autoincrement = True)
+    name = db.Column(db.String(80))
+    google_id = db.Column(db.String(200),unique=True)
+    seen = db.relationship('Links',backref = 'user',lazy = 'dynamic')
+    
+    def __init__(self,name,google_id,seen=[]):
+        self.name = name
+        self.google_id = google_id
+        self.seen = seen 
+
+    @staticmethod
+    def get_or_create(name,google_id):
+        user = User.query.filter_by(google_id=google_id).first()
+
+        if user is None:
+            print '2'
+            user = User(name,google_id)
+            db.session.add(user)
+            db.session.commit()
+        print '3'
+        return user
+ 
+class Links(db.Model):
+    id = db.Column(db.Integer,primary_key = True)
+    person_id = db.Column(db.Integer,db.ForeignKey('user.id'))
+    
+    def __init__(self,id):
+        id = self.id
+
+@app.route('/')
+def start(name=None):
+    if current_user.is_authenticated():
+        return 'K b'
+    else:
+        return render_template('index.html',name=name)
+
+redirect_uri = 'http://127.0.0.1:5000/callback'
+
+@app.route('/login/google')
+def googleLogin():
+    params = {'scope': 'https://www.googleapis.com/auth/userinfo.profile',
+              'access_type': 'offline',
+              'response_type': 'code',
+              'redirect_uri': redirect_uri}
+    return redirect(google.get_authorize_url(**params))
+
+
+@app.route('/callback')
+def callback():
+    response = google.get_raw_access_token(data = {'code': request.args['code'],
+            'grant_type': 'authorization_code',
+            'redirect_uri': redirect_uri})
+    
+    response = response.json()
+    session = google.get_session(response['access_token'])
+    user = session.get('https://www.googleapis.com/oauth2/v1/userinfo').json()
+    me = User.get_or_create(user['name'],user['id'])
+    print me.id 
+    print me.name
+    print me.google_id 
+    flash('Hello ' + me.name)
+    return redirect(url_for('start'))
+
+         
+if __name__ == '__main__':
+    app.run()
+    #manager.run()
