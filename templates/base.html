@@ -12,10 +12,15 @@
     <title>Comikr</title>
 
     <!-- Bootstrap Core CSS -->
-    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+    <link href="static/css/bootstrap.min.css" rel="stylesheet">
+    <style type="text/css">
+    	.col-md-4 {
+    	  width: 150px;
+    	}
+    </style>
 
     <!-- Custom CSS -->
-    <link href="/static/css/base.css" rel="stylesheet">
+    <link href="static/css/base.css" rel="stylesheet">
 
     <!-- Custom Fonts -->
     <link href="/static/font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
@@ -69,17 +74,19 @@
                         <img style = "height:auto; width:auto; max-width:1000px; max-height:500px;" src= {{ src }} class="img-rounded center-block"/>
                     </div>
                 </div>
-                <div class="row" style="margin-left : 0%">
-                    <div class="col-md-4">
+                <div style="margin-left: auto;margin-right: auto;">
+                <div class="row" style="margin-left: auto;margin-right: auto;width: 50%;">
+                    <div class="col-md-4" style="margin-right: -21px;">
                        <a class="btn btn-primary" href= {{ url_for('prev') }} role="button">Prev</a>
                     </div>
     
-                    <div class="col-md-4" style="margin-left : 42%">
+                    <div class="col-md-4">
                        <a class="btn btn-primary" href= {{ url_for('strip') }} role="button">Random</a>
                     </div>
                     <div class="col-md-4">
                        <a class="btn btn-primary" href= {{ url_for('next') }} role="button">Next</a>
                     </div>
+                </div>
                 </div>
             </div>
         </div>
