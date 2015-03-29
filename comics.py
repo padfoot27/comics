@@ -32,7 +32,7 @@ USERNAME = 'user'
 PASSWORD = 'default'
 DEBUG = True 
 
-tLinks = 3696
+tLinks = 11
 
 google = OAuth2Service(
     name='google',
@@ -52,7 +52,7 @@ class User(db.Model):
     plink = db.Column(db.String(200))
     seen = db.relationship('Links',backref = 'user',lazy = 'dynamic')
     
-    def __init__(self,name,google_id,seen=[],links=300,done=300,plink=None):
+    def __init__(self,name,google_id,seen=[],links=5,done=5,plink=None):
         self.name = name
         self.google_id = google_id
         self.seen = seen 
@@ -81,20 +81,18 @@ class User(db.Model):
         user = User.query.filter_by(google_id=google_id).first()
 
         if user is None:
-            print '2'
             user = User(name,google_id)
             db.session.add(user)
             db.session.commit()
             
             for i in range(user.links):
                 src = Source.query.filter_by(id=i + 1).first().source 
-                print src
                 li = Links(src=src,user=user)
                 db.session.add(li)
                 user.seen.append(li)
                 db.session.add(user)
                 db.session.commit()
-        print '3'
+
         return user
     
 class Links(db.Model):
@@ -142,9 +140,6 @@ def callback():
     session = google.get_session(response['access_token'])
     user = session.get('https://www.googleapis.com/oauth2/v1/userinfo').json()
     me = User.get_or_create(user['name'],user['id'])
-    print me.id 
-    print me.name
-    print me.google_id 
     login_user(me)
     flash('Hello ' + me.name)
     return redirect(url_for('strip'))
@@ -153,37 +148,32 @@ def callback():
 @login_required 
 def strip():
     user = User.query.filter_by(id=current_user.id).first()
-    if user.done < tLinks:
+    if user.done <= tLinks:
         user.done += 1
-   
-    s = Source.query.filter_by(id=user.done).first()
+    if user.done <= tLinks:
+        s = Source.query.filter_by(id=user.done).first()
 
     if user.links == 0:
         logout_user()
         return render_template('end.html')
-
     strip = randint(0,user.links - 1)
-    
     srce = user.seen[strip].src 
     user.seen.remove(user.seen[strip])
     
-    if user.done < tLinks:
+    if user.done <= tLinks:
         src = s.source
         li = Links(src=src,user=user)
         db.session.add(li)
         user.seen.append(li)
-     
-    if user.done == tLinks:
-        user.links -= 1
     
     user.plink = srce
+    if user.done == tLinks + 1:
+        user.links -= 1
     
     db.session.add(user)
     db.session.commit()
-    print user.links 
-    print user.done
     s = Source.query.filter_by(source=srce).first()
-   
+    
     return render_template('base.html',src=srce,num=s.id)
        
 @app.route('/next')
@@ -202,11 +192,13 @@ def next():
         n = s.id + 1
 
     s = Source.query.filter_by(id=n).first()
-
+    
     src = s.source 
-    li = Links(src=src,user=user)
-    db.session.add(li)
-    user.seen.append(li)
+    
+    if n == user.done + 1:
+        li = Links(src=src,user=user)
+        db.session.add(li)
+        user.seen.append(li)
     user.plink = src 
     
     db.session.add(user)
@@ -231,9 +223,6 @@ def prev():
     s = Source.query.filter_by(id=n).first()
 
     src = s.source 
-    li = Links(src=src,user=user)
-    db.session.add(li)
-    user.seen.append(li)
     user.plink = src 
     
     db.session.add(user)
@@ -250,4 +239,3 @@ def logout():
 if __name__ == '__main__':
     db.create_all()
     app.run()
-    #manager.run()
