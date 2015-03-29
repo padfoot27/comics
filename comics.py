@@ -32,7 +32,7 @@ USERNAME = 'user'
 PASSWORD = 'default'
 DEBUG = True 
 
-tLinks = 11
+tLinks = 3696
 
 google = OAuth2Service(
     name='google',
@@ -52,7 +52,7 @@ class User(db.Model):
     plink = db.Column(db.String(200))
     seen = db.relationship('Links',backref = 'user',lazy = 'dynamic')
     
-    def __init__(self,name,google_id,seen=[],links=5,done=5,plink=None):
+    def __init__(self,name,google_id,seen=[],links=300,done=300,plink=None):
         self.name = name
         self.google_id = google_id
         self.seen = seen 
