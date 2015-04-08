@@ -92,7 +92,7 @@ a:focus {
 }
 
 .nav a {
-    color:#ADD8E6;
+    color:#4183c4;
     text-transform: uppercase;
     font-family: Montserrat,"Helvetica Neue",Helvetica,Arial,sans-serif;
     font-size:14px;
@@ -286,6 +286,7 @@ a:focus {
     -moz-transition: all .3s ease-in-out;
     transition: all .3s ease-in-out;
     margin-top:50px;
+    margin-left:70%;
 }
 
 .btn-default {
